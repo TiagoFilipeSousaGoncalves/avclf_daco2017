@@ -193,20 +193,21 @@ plt.show()
 
 import cv2 
 
-img1 = retinal_image(retinal_im_list[15], 'train')
+img1 = retinal_image(retinal_im_list[2], 'train')
 
 img= img1.image
 plt.figure(4)
 plt.imshow(img)
 plt.show()
+
 img = np.float32(img)
 
 rows,cols,dim = img.shape
 
-rh, rl, cutoff = 2.5,0.5,32
+rh, rl, cutoff = 0.95,0.25,0.01 #possivelmente será necessário modificar os parametros 
 
 imgHSV = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-
+#imgHSV = cv2.cvtColor(img, cv2.COLOR_BGR2YCrCb)
 H,S,V = cv2.split(imgHSV)
 indices=(img1.mask==0)
 indices=indices.astype(np.int)
@@ -254,14 +255,55 @@ result_V = np.exp(result_interm_V)
 result1 = np.dstack((H,S,result_V))
 result1 = np.float32(result1)
 imgRGB = cv2.cvtColor(result1, cv2.COLOR_HSV2RGB)
+#imgRGB = cv2.cvtColor(result1, cv2.COLOR_YCrCb2RGB)
 
 cv2.imshow('Homomorphic Filtered Result', result_V)
+
 cv2.imshow('Homomorphic Filtered RGB Image', imgRGB)
 
 
 
 
+###############################
+#center disk
 
+#from skimage.color import rgb2gray
+
+img_gray= cv2.cvtColor(imgRGB, cv2.COLOR_BGR2GRAY)
+
+from skimage.feature import blob_dog
+from skimage.filters import gaussian 
+img_gray=gaussian(img_gray,sigma=5)
+
+blobs_dog = blob_dog(img_gray, max_sigma=30, threshold=.7)
+
+blobs = [blobs_dog]
+colors = ['red']
+titles = ['Difference of Gaussian']
+sequence = zip(blobs, colors, titles)
+
+from skimage.filters import gaussian
+meancolorintensity=[]; 
+for blobs, cor, title in sequence:
+    fig, ax = plt.subplots(1, 1)
+    ax.set_title(title)
+    ax.imshow(image, interpolation='nearest',cmap='gray')
+    for blob in blobs:
+        y, x, r = blob
+        print("y",y,"x",x,"r",r)
+        c = plt.Circle((x, y), r, color=cor, linewidth=1, fill=False)
+        ax.add_patch(c)
+        area=np.mean(img_gray[int(y-round(r)):int(y+round(r)),int(x-round(r)):int(x+round(r))]) #ver se estao trocados
+        print(area)
+        meancolorintensity.append(area)
+print(meancolorintensity)
+plt.imshow(img_gray,cmap='gray')
+maxIndex=np.argmax(meancolorintensity); 
+
+plt.scatter(x=blobs[maxIndex,1],y=blobs[maxIndex,0],c='r',s=20,marker='x')
+plt.imshow(img_gray,cmap='gray')
+
+plt.show()
 
 
 
