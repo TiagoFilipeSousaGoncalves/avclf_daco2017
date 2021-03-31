@@ -10,7 +10,10 @@ import string
 results_dir = "results"
 data_dir = "data"
 pt_text_fname = "exc10_string.txt"
-pt_letters_freqs = "pt_letters_freqs.csv"
+
+# PT Frequency Letters
+# pt_letters_freqs = "pt_letters_freqs.csv"
+pt_letters_freqs = "pt_letters_freqs.txt"
 
 
 
@@ -28,22 +31,27 @@ lower_case_letters = all_letters[0:26]
 
 
 # Read the CSV that contains the PT letters frequencies
-pt_freqs = pd.read_csv(os.path.join(data_dir, pt_letters_freqs), delimiter=',')
+# pt_freqs = pd.read_csv(os.path.join(data_dir, pt_letters_freqs), delimiter=',')
 # print(pt_freqs.head())
 
+
 # Convert this into Numpy array 
-pt_freqs_arr = pt_freqs.values
+# pt_freqs_arr = pt_freqs.values
 
 # Debug print
 # print(pt_freqs_arr)
 
 # Where the first col represents the letters and the second col represents the relative frequencies
-pt_freqs_arr = pt_freqs_arr[:, 0:2]
+# pt_freqs_arr = pt_freqs_arr[:, 0:2]
 
+pt_freqs_arr = np.genfromtxt(os.path.join(data_dir, pt_letters_freqs), delimiter=',', dtype=str)
+# print(pt_freqs_arr)
+
+pt_freqs_arr = np.array(pt_freqs_arr, dtype=object)
 
 # Convert the second col (strings) to floats (relative frequency)
 for i in range(pt_freqs_arr.shape[0]):
-    pt_freqs_arr[i, 1] = np.float(pt_freqs_arr[i, 1].replace(',', '.'))
+    pt_freqs_arr[i, 1] = np.float(pt_freqs_arr[i, 1])
 
 
 # Debug print
@@ -61,27 +69,14 @@ for li in range(len(lower_case_letters)):
             pt_freqs_proc[li, 0] = arr[0]
             pt_freqs_proc[li, 1] = arr[1]
 
-
-# Sort text letters frequency usign pandas
-# Create pd.DataFrame
-df_pt_freq_letters = pd.DataFrame(
-    {
-        'letter': pt_freqs_proc[:, 0],
-        'freq': pt_freqs_proc[:, 1],
-    }
-)
-
 # Debug print
-# print(df_pt_freq_letters)
-
-# Sort values by frequency (descending)
-df_pt_freq_letters = df_pt_freq_letters.sort_values(by='freq', ascending=False)
+# print(pt_freqs_proc)
 
 # Debug print
 # print(df_pt_freq_letters)
 
 # Convert to array
-pt_freq_letters = df_pt_freq_letters.values
+pt_freq_letters = pt_freqs_proc.copy()
 
 # Debug print
 # print(df_pt_freq_letters)
@@ -134,9 +129,9 @@ text_letters_freq = np.zeros(shape=(pt_freq_letters.shape[0], 2), dtype=object)
 
 
 # Get the frequencies
-for l_idx, l in enumerate(pt_freq_letters[:, 0]):
+for l_idx, l in enumerate(lower_case_letters):
     # Count the occurences in 'cipher_string'
-    print(l)
+    # print(l)
     l_freq = cipher_string.count(l)
     
     # Append this to table of frequencies
@@ -146,75 +141,46 @@ for l_idx, l in enumerate(pt_freq_letters[:, 0]):
 # Debug print
 # print(f"Frequency of letters in this encrypted text:\n{text_letters_freq}")
 
-# Sort text letters frequency usign pandas
-# Create pd.DataFrame
-df_freq_letters = pd.DataFrame(
-    {
-        'letter': text_letters_freq[:, 0],
-        'freq': text_letters_freq[:, 1],
-    }
-)
-
-# Debug print
-# print(df_freq_letters)
-
-# Sort values by frequency (descending)
-df_freq_letters = df_freq_letters.sort_values(by='freq', ascending=False)
-
-# Debug print
-# print(df_freq_letters)
-
-# Convert to array
-freq_letters_arr = df_freq_letters.values
-
-# Debug print
-# print(df_freq_letters_arr, df_freq_letters_arr.shape)
-
 # Get relative frequencies so we can compare to the Portuguese relative frequencies
-total = np.sum(freq_letters_arr[:, 1])
-print(total)
-for idx, arr in enumerate(freq_letters_arr):
+total = np.sum(text_letters_freq[:, 1])
+# print(total)
+
+for idx, arr in enumerate(text_letters_freq):
     # print(arr)
-    freq_letters_arr[idx, 1] = (arr[1] / total) * 100
+    text_letters_freq[idx, 1] = (arr[1] / total) * 100
 
-# Debug print
-# print(df_freq_letters_arr, df_freq_letters_arr.shape)
-
-
-# Sort text letters relative frequency using pandas
-# Create pd.DataFrame
-cph_r_freq_letters = pd.DataFrame(
-    {
-        'letter': freq_letters_arr[:, 0],
-        'freq': freq_letters_arr[:, 1],
-    }
-)
-
-# Debug print
-# print(cph_r_freq_letters)
-
-# Sort values by frequency (descending)
-cph_r_freq_letters = cph_r_freq_letters.sort_values(by='freq', ascending=False)
-
-# Debug print
-# print(cph_r_freq_letters)
-
-# Convert to array
-cph_r_freq_letters = cph_r_freq_letters.values
 
 # Debug prints
-print(cph_r_freq_letters, cph_r_freq_letters.shape)
+print(text_letters_freq, text_letters_freq.shape)
 print(pt_freq_letters, pt_freq_letters.shape)
 
 
 # Create a dict
-decrypt_dict = {}
+alphabet = [f for f in pt_freq_letters[:, 0]]
+alphabet_freqs = [f for f in pt_freq_letters[:, 1]]
+
+ciphered_alphabet = [f for f in text_letters_freq[:, 0]]
+ciphered_freqs = [f for f in text_letters_freq[:, 1]]
 
 # Loop
-for idx, arr in enumerate(cph_r_freq_letters):
-    decrypt_dict[arr[0]] = pt_freq_letters[idx, 0]
+decrypt_dict = dict()
+
+while len(decrypt_dict) < 26:
+    a_idx = np.argmax(alphabet_freqs)
+    curr_letter = alphabet[a_idx]
+
+    m_idx = np.argmax(ciphered_freqs)
+    curr_map = ciphered_alphabet[m_idx]
+
+    decrypt_dict[curr_map] = curr_letter
+
+    del alphabet[a_idx]
+    del alphabet_freqs[a_idx]
+    del ciphered_alphabet[m_idx]
+    del ciphered_freqs[m_idx]
 
 print(decrypt_dict)
+
 
 # loop to recover plain text
 decrypt_txt = str()
@@ -224,4 +190,4 @@ for char in cipher_string:
         decrypt_txt += decrypt_dict[char]
           
 
-print("Recovered plain text :", decrypt_txt) 
+print("Decrypted text :", decrypt_txt) 
